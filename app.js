@@ -8,6 +8,7 @@ import { VRButton } from './libs/three/jsm/VRButton.js';
 import { XRControllerModelFactory } from './libs/three/jsm/XRControllerModelFactory.js';
 import { BoxLineGeometry } from './libs/three/jsm/BoxLineGeometry.js';
 import { Stats } from './libs/stats.module.js';
+import { ARButton } from "e:/[ freecourseweb.com ] udemy - learn to create webxr, vr and ar, experiences using three.js/~get your course here !/2. a three.js primer/libs/arbutton.js"
 
 class App
 {
@@ -42,8 +43,7 @@ class App
 
         const controls = new OrbitControls(this.camera,this.renderer.domElement);
         this.initScene();
-        this.setupVR();
-        this.renderer.setAnimationLoop(this.render.bind(this));
+        this.setupAR();
 
         window.addEventListener('resize',this.resize.bind(this))
     }
@@ -54,31 +54,33 @@ class App
 
     initScene()
     {
-               this.radius = 0.08;
-
-               this.room = new THREE.LineSegments(new BoxLineGeometry(6,6,6,10,10,10),new THREE.LineBasicMaterial({color:0x808080}));
-               this.room.geometry.translate(0,3,0);
-               this.scene.add(this.room);
-
-               const geometry = new THREE.IcosahedronBufferGeometry(this.radius,2);
-
-               for (let i=0;i<200;i++)
-               {
-                   const object = new THREE.Mesh(geometry,new THREE.MeshLambertMaterial({color:0xff7700}));
-                   
-                   object.position.x = this.random(-2,2);
-                   object.position.y = this.random(-2,2);
-                   object.position.z = this.random(-2,2);
-
-                   this.room.add(object);
-               }
-
+            this.geometry = new THREE.BoxBufferGeometry(0.06,0.06,0.06);
+            this.meshes = [];
     }
 
-    setupVR()
+    setupAR()
     {
         this.renderer.xr.enabled = true;
-        document.body.appendChild(VRButton.createButton(this.renderer));
+        let controller;
+        const self = this;
+
+        function onSelect()
+        {
+            const material = new THREE.MeshPhongMaterial({color:(0xffffff*Math.random())});
+            const mesh = new THREE.Mesh(this.geometry,material);
+            mesh.position.set(0,0,-0.3).applyMatrix4(controller.matrixWorld);
+            mesh.quaternion.setFromRotationMatrix(controller.matrixWorld);
+            this.scene.add(mesh);
+            this.meshes.add(mesh);
+        }
+
+        const btn = new ARButton(this.renderer);
+
+        controller = this.renderer.xr.getController(0);
+        controller.addEventListener('select',onSelect);
+        this.scene.add(controller);
+        this.renderer.setAnimationLoop(this.render.bind(this));
+
     }
 
     resize()
@@ -90,6 +92,7 @@ class App
 
     render()
     {
+        this.meshes.forEach((mesh)=>{mesh.rotateY(0.02);});
         this.renderer.render(this.scene,this.camera);
     }
 
