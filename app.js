@@ -8,7 +8,7 @@ import { VRButton } from './libs/three/jsm/VRButton.js';
 import { XRControllerModelFactory } from './libs/three/jsm/XRControllerModelFactory.js';
 import { BoxLineGeometry } from './libs/three/jsm/BoxLineGeometry.js';
 import { Stats } from './libs/stats.module.js';
-import { ARButton } from "e:/[ freecourseweb.com ] udemy - learn to create webxr, vr and ar, experiences using three.js/~get your course here !/2. a three.js primer/libs/arbutton.js"
+import { ARButton } from "./libs/ARButton.js"
 
 class App
 {
