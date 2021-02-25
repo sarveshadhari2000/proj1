@@ -137,7 +137,7 @@ class App{
         let controller, controller1;
         
         function onSessionStart(){
-            self.ui.mesh.position.set( 0, 0.2, -0.3 );
+            self.ui.mesh.position.set( 0, -0.2, -0.3 );
             self.camera.add( self.ui.mesh );
         }
         
@@ -148,6 +148,21 @@ class App{
         const btn = new ARButton( this.renderer, { onSessionStart, onSessionEnd } );
         
         //Add gestures here
+	this.gestures = new ControllerGestures(this.renderer);
+
+        this.gestures.addEventListener('tap' ,(ev)=>
+        {
+             console.log('tap');
+             self.ui.updateElement('info','tap');
+		
+	     if (!this.knight.object.visible)
+	     {
+		     self.knight.object.visible = true;
+		     self.knight.position.set(0.0,-0.3,-0.5).add(ev.position);
+		     self.scene.add(self.knight.object);
+	     }
+        }
+        );
 
         
         this.renderer.setAnimationLoop( this.render.bind(this) );
@@ -163,7 +178,7 @@ class App{
         const dt = this.clock.getDelta();
         this.stats.update();
         if ( this.renderer.xr.isPresenting ){
-            //this.gestures.update();
+            this.gestures.update();
             this.ui.update();
         }
         if ( this.knight !== undefined ) this.knight.update(dt);
