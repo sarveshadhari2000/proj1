@@ -137,7 +137,7 @@ class App{
         let controller, controller1;
         
         function onSessionStart(){
-            self.ui.mesh.position.set( 0, -0.2, -0.3 );
+            self.ui.mesh.position.set( 0, 0.2, -0.3 );
             self.camera.add( self.ui.mesh );
         }
         
