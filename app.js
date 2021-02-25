@@ -1,18 +1,3 @@
-import * as THREE from './libs/three/three.module.js';
-import { VRButton } from './VRButton.js';
-import { XRControllerModelFactory } from './libs/three/jsm/XRControllerModelFactory.js';
-import { BoxLineGeometry } from './libs/three/jsm/BoxLineGeometry.js';
-import { Stats } from './libs/stats.module.js';
-import { OrbitControls } from './libs/three/jsm/OrbitControls.js';
-import { Player } from './libs/Player.js';
-import { ControllerGestures } from './libs/ControllerGestures.js';
-import { LoadingBar } from './libs/LoadingBar.js';
-import { GLTFLoader } from './libs/three/jsm/GLTFLoader.js';
-import { CanvasUI } from './libs/CanvasUI.js'
-import { ARButton } from './libs/ARButton.js';
-import { RGBELoader } from './libs/three/jsm/RGBELoader.js';
-
-
 
 class App{
 	constructor(){
@@ -23,7 +8,7 @@ class App{
         
         this.loadingBar = new LoadingBar();
 
-		this.assetsPath = './assets/';
+		this.assetsPath = '../../assets/';
         
 		this.camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 0.01, 20 );
 		this.camera.position.set( 0, 1.6, 3 );
@@ -61,7 +46,7 @@ class App{
         
         const self = this;
         
-        loader.load( './assets/hdr/venice_sunset_1k.hdr', ( texture ) => {
+        loader.load( '../../assets/hdr/venice_sunset_1k.hdr', ( texture ) => {
           const envMap = pmremGenerator.fromEquirectangular( texture ).texture;
           pmremGenerator.dispose();
 
@@ -110,7 +95,7 @@ class App{
 				self.knight.object.scale.set(scale, scale, scale); 
 				
                 self.loadingBar.visible = false;
-                self.renderer.setAnimationLoop( self.render.bind(self) );
+                self.renderer.setAnimationLoop( self.render.bind(self) );//(timestamp, frame) => { self.render(timestamp, frame); } );
 			},
 			// called while loading is progressing
 			function ( xhr ) {
@@ -128,6 +113,15 @@ class App{
 	}		
     
     initScene(){
+        this.reticle = new THREE.Mesh(
+            new THREE.RingBufferGeometry( 0.15, 0.2, 32 ).rotateX( - Math.PI / 2 ),
+            new THREE.MeshBasicMaterial()
+        );
+        
+        this.reticle.matrixAutoUpdate = false;
+        this.reticle.visible = false;
+        this.scene.add( this.reticle );
+        
         this.loadKnight();
     }
     
@@ -142,7 +136,17 @@ class App{
         this.hitTestSource = null;
         
         function onSelect() {
+            if (self.knight===undefined) return;
             
+            if (self.reticle.visible){
+                if (self.knight.object.visible){
+                    self.workingVec3.setFromMatrixPosition( self.reticle.matrix );
+                    self.knight.newPath(self.workingVec3);
+                }else{
+                    self.knight.object.position.setFromMatrixPosition( self.reticle.matrix );
+                    self.knight.object.visible = true;
+                }
+            }
         }
 
         this.controller = this.renderer.xr.getController( 0 );
@@ -152,12 +156,50 @@ class App{
     }
     
     requestHitTestSource(){
+        const self = this;
         
+        const session = this.renderer.xr.getSession();
+
+        session.requestReferenceSpace( 'viewer' ).then( function ( referenceSpace ) {
+            
+            session.requestHitTestSource( { space: referenceSpace } ).then( function ( source ) {
+
+                self.hitTestSource = source;
+
+            } );
+
+        } );
+
+        session.addEventListener( 'end', function () {
+
+            self.hitTestSourceRequested = false;
+            self.hitTestSource = null;
+            self.referenceSpace = null;
+
+        } );
+
+        this.hitTestSourceRequested = true;
 
     }
     
     getHitTestResults( frame ){
-        
+        const hitTestResults = frame.getHitTestResults( this.hitTestSource );
+
+        if ( hitTestResults.length ) {
+            
+            const referenceSpace = this.renderer.xr.getReferenceSpace();
+            const hit = hitTestResults[ 0 ];
+            const pose = hit.getPose( referenceSpace );
+
+            this.reticle.visible = true;
+            this.reticle.matrix.fromArray( pose.transform.matrix );
+
+        } else {
+
+            this.reticle.visible = false;
+
+        }
+
     }
 
     render( timestamp, frame ) {
@@ -175,6 +217,10 @@ class App{
         }
 
         this.renderer.render( this.scene, this.camera );
+        
+        /*if (this.knight.calculatedPath && this.knight.calculatedPath.length>0){
+            console.log( `path:${this.knight.calculatedPath[0].x.toFixed(2)}, ${this.knight.calculatedPath[0].y.toFixed(2)}, ${this.knight.calculatedPath[0].z.toFixed(2)} position: ${this.knight.object.position.x.toFixed(2)}, ${this.knight.object.position.y.toFixed(2)}, ${this.knight.object.position.z.toFixed(2)}`);
+        }*/
     }
 }
 
