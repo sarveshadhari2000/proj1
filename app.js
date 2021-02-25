@@ -117,9 +117,8 @@ class App{
     createUI() {
         
         const config = {
-            panelSize: { width: 0.1, height: 0.025 },
-            height: 64,
-	    width:256,
+            panelSize: { width: 0.2, height: 0.05 },
+            height: 128,
             info:{ type: "text" }
         }
         const content = {
