@@ -165,34 +165,7 @@ class App{
         }
         );
 
-        this.gestures.addEventListener('swipe',(ev)=>
-        {
-            console.log(ev);
-
-            self.ui.updateElement('info',`swipe ${ev.direction}`);
-
-            if (self.knight.object.visible)
-            {
-                self.knight.object.visible = false;
-                self.scene.remove(self.knight.object);
-            }
-        });
-
-        this.gestures.addEventListener('pan',(ev)=>
-        {
-              console.log('pan');
-
-              if (ev.initialise !== undefined)
-              {
-                  self.startPosition = self.knight.object.position.clone();
-              }
-
-              else
-              {
-                  const pos = self.startPosition.clone().add(ev.delta.multiplyScalar(3));
-                  self.knight.object.position.copy(pos);
-              }
-        });
+       
 
         
         this.renderer.setAnimationLoop( this.render.bind(this) );
