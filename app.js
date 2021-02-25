@@ -59,7 +59,7 @@ class App{
     initScene(){
         this.loadingBar = new LoadingBar();
         
-        this.assetsPath = '../../assets/';
+        this.assetsPath = './assets/';
         const loader = new GLTFLoader().setPath(this.assetsPath);
 		const self = this;
 		
@@ -148,6 +148,7 @@ class App{
         const btn = new ARButton( this.renderer, { onSessionStart, onSessionEnd } );
         
         //Add gestures here
+
         
         this.renderer.setAnimationLoop( this.render.bind(this) );
     }
@@ -162,7 +163,7 @@ class App{
         const dt = this.clock.getDelta();
         this.stats.update();
         if ( this.renderer.xr.isPresenting ){
-            this.gestures.update();
+            //this.gestures.update();
             this.ui.update();
         }
         if ( this.knight !== undefined ) this.knight.update(dt);
