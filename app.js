@@ -10,7 +10,7 @@ import { LoadingBar } from './libs/LoadingBar.js';
 import { GLTFLoader } from './libs/three/jsm/GLTFLoader.js';
 import { CanvasUI } from './libs/CanvasUI.js'
 import { ARButton } from './libs/ARButton.js';
-
+import { RGBELoader } from './libs/three/jsm/RGBELoader.js';
 
 
 
@@ -21,46 +21,65 @@ class App{
         
         this.clock = new THREE.Clock();
         
-		this.camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 0.01, 20 );
-		
-		this.scene = new THREE.Scene();
-        
-        this.scene.add(this.camera);
-       
-		this.scene.add( new THREE.HemisphereLight( 0x606060, 0x404040 ) );
+        this.loadingBar = new LoadingBar();
 
-        const light = new THREE.DirectionalLight( 0xffffff );
-        light.position.set( 1, 1, 1 ).normalize();
-		this.scene.add( light );
+		this.assetsPath = './assets/';
+        
+		this.camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 0.01, 20 );
+		this.camera.position.set( 0, 1.6, 3 );
+        
+		this.scene = new THREE.Scene();
+
+		const ambient = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 2);
+        ambient.position.set( 0.5, 1, 0.25 );
+		this.scene.add(ambient);
+        
+        const light = new THREE.DirectionalLight();
+        light.position.set( 0.2, 1, 1);
+        this.scene.add(light);
 			
 		this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true } );
 		this.renderer.setPixelRatio( window.devicePixelRatio );
 		this.renderer.setSize( window.innerWidth, window.innerHeight );
-        this.renderer.outputEncoding = THREE.sRGBEncoding;
-        
+		this.renderer.outputEncoding = THREE.sRGBEncoding;
 		container.appendChild( this.renderer.domElement );
+        this.setEnvironment();
         
-        this.controls = new OrbitControls( this.camera, this.renderer.domElement );
-        this.controls.target.set(0, 3.5, 0);
-        this.controls.update();
-        
-        this.stats = new Stats();
-        
-        this.origin = new THREE.Vector3();
-        this.euler = new THREE.Euler();
-        this.quaternion = new THREE.Quaternion();
+        this.workingVec3 = new THREE.Vector3();
         
         this.initScene();
         this.setupXR();
+		
+		window.addEventListener('resize', this.resize.bind(this));
         
-        window.addEventListener('resize', this.resize.bind(this) );
-	}	
+	}
     
-    initScene(){
-        this.loadingBar = new LoadingBar();
+    setEnvironment(){
+        const loader = new RGBELoader().setDataType( THREE.UnsignedByteType );
+        const pmremGenerator = new THREE.PMREMGenerator( this.renderer );
+        pmremGenerator.compileEquirectangularShader();
         
-        this.assetsPath = './assets/';
-        const loader = new GLTFLoader().setPath(this.assetsPath);
+        const self = this;
+        
+        loader.load( './assets/hdr/venice_sunset_1k.hdr', ( texture ) => {
+          const envMap = pmremGenerator.fromEquirectangular( texture ).texture;
+          pmremGenerator.dispose();
+
+          self.scene.environment = envMap;
+
+        }, undefined, (err)=>{
+            console.error( 'An error occurred setting the environment');
+        } );
+    }
+	
+    resize(){ 
+        this.camera.aspect = window.innerWidth / window.innerHeight;
+    	this.camera.updateProjectionMatrix();
+    	this.renderer.setSize( window.innerWidth, window.innerHeight );  
+    }
+    
+    loadKnight(){
+	    const loader = new GLTFLoader().setPath(this.assetsPath);
 		const self = this;
 		
 		// Load a GLTF resource
@@ -71,17 +90,12 @@ class App{
 			function ( gltf ) {
 				const object = gltf.scene.children[5];
 				
-				object.traverse(function(child){
-					if (child.isMesh){
-                        child.material.metalness = 0;
-                        child.material.roughness = 1;
-					}
-				});
-				
 				const options = {
 					object: object,
 					speed: 0.5,
-					animations: gltf.animations,
+					assetsPath: self.assetsPath,
+					loader: loader,
+                    animations: gltf.animations,
 					clip: gltf.animations[0],
 					app: self,
 					name: 'knight',
@@ -92,10 +106,11 @@ class App{
                 self.knight.object.visible = false;
 				
 				self.knight.action = 'Dance';
-				const scale = 0.003;
+				const scale = 0.005;
 				self.knight.object.scale.set(scale, scale, scale); 
 				
                 self.loadingBar.visible = false;
+                self.renderer.setAnimationLoop( self.render.bind(self) );
 			},
 			// called while loading is progressing
 			function ( xhr ) {
@@ -110,81 +125,55 @@ class App{
 
 			}
 		);
-        
-        this.createUI();
-    }
+	}		
     
-    createUI() {
-        
-        const config = {
-            panelSize: { width: 0.2, height: 0.05 },
-            height: 128,
-            info:{ type: "text" }
-        }
-        const content = {
-            info: "Debug info"
-        }
-        
-        const ui = new CanvasUI( content, config );
-        
-        this.ui = ui;
+    initScene(){
+        this.loadKnight();
     }
     
     setupXR(){
-        this.renderer.xr.enabled = true; 
+        this.renderer.xr.enabled = true;
+        
+        const btn = new ARButton( this.renderer, { sessionInit: { requiredFeatures: [ 'hit-test' ], optionalFeatures: [ 'dom-overlay' ], domOverlay: { root: document.body } } } );
         
         const self = this;
-        let controller, controller1;
+
+        this.hitTestSourceRequested = false;
+        this.hitTestSource = null;
         
-        function onSessionStart(){
-            self.ui.mesh.position.set( 0, -0.2, -0.3 );
-            self.camera.add( self.ui.mesh );
+        function onSelect() {
+            
         }
-        
-        function onSessionEnd(){
-            self.camera.remove( self.ui.mesh );
-        }
-        
-        const btn = new ARButton( this.renderer, { onSessionStart, onSessionEnd } );
-        
-        //Add gestures here
 
-        this.gestures = new ControllerGestures(this.renderer);
-
-        this.gestures.addEventListener('tap' ,(ev)=>
-        {
-             console.log('tap');
-             self.ui.updateElement('info','tap');
-             
-	     if (!this.knight.object.visible)
-	     {
-		     self.knight.object.visible = true;
-		     self.knight.object.position.set(0.0,-0.3,-0.5).add(ev.position);
-		     self.scene.add(self.knight.object);
-	     }
-        }
-        );
-
-       
-
+        this.controller = this.renderer.xr.getController( 0 );
+        this.controller.addEventListener( 'select', onSelect );
         
-        this.renderer.setAnimationLoop( this.render.bind(this) );
+        this.scene.add( this.controller );    
     }
     
-    resize(){
-        this.camera.aspect = window.innerWidth / window.innerHeight;
-        this.camera.updateProjectionMatrix();
-        this.renderer.setSize( window.innerWidth, window.innerHeight );  
+    requestHitTestSource(){
+        
+
     }
     
-	render( ) {   
+    getHitTestResults( frame ){
+        
+    }
+
+    render( timestamp, frame ) {
         const dt = this.clock.getDelta();
-        this.stats.update();
-        if ( this.renderer.xr.isPresenting ){
-            this.gestures.update();
-            this.ui.update();
+        if (this.knight) this.knight.update(dt);
+
+        const self = this;
+        
+        if ( frame ) {
+
+            if ( this.hitTestSourceRequested === false ) this.requestHitTestSource( )
+
+            if ( this.hitTestSource ) this.getHitTestResults( frame );
+
         }
-        if ( this.knight !== undefined ) this.knight.update(dt);
+
         this.renderer.render( this.scene, this.camera );
     }
 }
