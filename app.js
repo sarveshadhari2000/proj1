@@ -141,6 +141,8 @@ class App{
     
     setupXR(){
         this.renderer.xr.enabled = true;
+
+        let controller1,controller;
         
         const btn = new ARButton( this.renderer, { sessionInit: { requiredFeatures: [ 'hit-test' ], optionalFeatures: [ 'dom-overlay' ], domOverlay: { root: document.body } } } );
         
@@ -181,11 +183,10 @@ class App{
         
         // this.scene.add( this.controller );    
 
-        // this.gestures = new ControllerGestures( this.renderer );
-        // this.gestures.addEventListener( 'tap', (ev)=>{
-        //     //console.log( 'tap' ); 
-        //     onSelect();
-        // });
+        this.gestures = new ControllerGestures( this.renderer );
+        this.gestures.addEventListener( 'tap', (ev)=>{
+            console.log( 'tap' ); 
+        });
     }
     
     requestHitTestSource(){
