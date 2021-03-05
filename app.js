@@ -165,9 +165,7 @@ class App{
 
         this.controller = this.renderer.xr.getController( 0 );
         this.controller.addEventListener( 'select', onSelect );
-        this.gestures = new ControllerGestures( this.renderer );
-
-        this.gestures.addEventListener( 'pinch', (ev)=>{
+        this.controller.addEventListener( 'squeeze',(ev)=>{
             //console.log( ev );  
             if (ev.initialise !== undefined){
                 self.startScale = self.knight.object.scale.clone();
@@ -177,6 +175,9 @@ class App{
                 console.log('pinched');
             }
         });
+        // this.gestures = new ControllerGestures( this.renderer );
+
+        // this.gestures.addEventListener( 'pinch', );
         
         this.scene.add( this.controller );    
     }
