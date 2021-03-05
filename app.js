@@ -183,7 +183,7 @@ class App{
 
         this.gestures = new ControllerGestures( this.renderer );
         this.gestures.addEventListener( 'tap', (ev)=>{
-            //console.log( 'tap' ); 
+            console.log( 'tap' ); 
             onSelect();
         });
     }
