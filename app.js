@@ -165,6 +165,18 @@ class App{
 
         this.controller = this.renderer.xr.getController( 0 );
         this.controller.addEventListener( 'select', onSelect );
+        this.gestures = new ControllerGestures( this.renderer );
+
+        this.gestures.addEventListener( 'pinch', (ev)=>{
+            //console.log( ev );  
+            if (ev.initialise !== undefined){
+                self.startScale = self.knight.object.scale.clone();
+            }else{
+                const scale = self.startScale.clone().multiplyScalar(ev.scale);
+                self.knight.object.scale.copy( scale );
+                console.log('pinched');
+            }
+        });
         
         this.scene.add( this.controller );    
     }
