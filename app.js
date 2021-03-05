@@ -58,7 +58,7 @@ class App{
     initScene(){
         this.loadingBar = new LoadingBar();
         
-        this.assetsPath = '../../assets/';
+        this.assetsPath = './assets/';
         const loader = new GLTFLoader().setPath(this.assetsPath);
 		const self = this;
 		
